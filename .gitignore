@@ -1,5 +1,17 @@
-node_modules/
+# Logs
 *.log
-.env
-/bin
-/tmp
+
+# env files
+../Ai-agent-for-browser/.env
+my-todo-learning/.env
+
+# Docker volumes
+postgres-data/
+my-todo-learning/postgres-data/
+
+# Build artifacts
+bin/
+tmp/
+
+# Test coverage
+coverage.out
