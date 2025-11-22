@@ -1,6 +1,6 @@
 # Makefile for my-todo-learning
 
-.PHONY: up down run build test fmt lint migrate clean
+.PHONY: up down run build test test-verbose test-coverage test-coverage-func test-coverage-html fmt lint clean
 
 up:
 	docker compose up -d
@@ -16,6 +16,21 @@ run:
 
 test:
 	go test ./...
+
+test-verbose:
+	go test -v ./...
+
+test-coverage:
+	go test -cover ./...
+
+test-coverage-func:
+	go test -coverprofile=coverage.out ./...
+	go tool cover -func=coverage.out
+
+test-coverage-html:
+	go test -coverprofile=coverage.out ./...
+	go tool cover -html=coverage.out -o coverage.html
+	@echo "Coverage report generated: coverage.html"
 
 fmt:
 	go fmt ./...

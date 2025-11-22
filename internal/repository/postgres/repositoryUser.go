@@ -8,7 +8,7 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/polzovatel/todo-learning/internal/domain"
-	"github.com/polzovatel/todo-learning/internal/models"
+	"github.com/polzovatel/todo-learning/internal/domain/entities"
 )
 
 type PostgresRepository struct {
@@ -23,24 +23,25 @@ func NewPostgresRepository(pool *pgxpool.Pool, logger *slog.Logger) *PostgresRep
 	}
 }
 
-func (r *PostgresRepository) CreateUser(ctx context.Context, email, passwordHash string) (models.User, error) {
-	const q = `INSERT INTO users (email, password_hash) VALUES ($1, $2) RETURNING id, email, password_hash, created_at`
+func (r *PostgresRepository) CreateUser(ctx context.Context, email, passwordHash string) (entities.User, error) {
+	userID := uuid.New()
+	const q = `INSERT INTO users (id, email, password_hash) VALUES ($1, $2, $3) RETURNING id, email, password_hash, created_at`
 
-	var user models.User
-	if err := r.pool.QueryRow(ctx, q, email, passwordHash).
+	var user entities.User
+	if err := r.pool.QueryRow(ctx, q, userID, email, passwordHash).
 		Scan(&user.ID, &user.Email, &user.PasswordHash, &user.CreatedAt); err != nil {
 		r.logger.Error("postgres: create user failed", slog.String("email", email), slog.Any("error", err))
-		return models.User{}, err
+		return entities.User{}, err
 	}
 
 	r.logger.Info("postgres: user created", slog.String("user_id", user.ID.String()))
 	return user, nil
 }
 
-func (r *PostgresRepository) GetUserByEmail(ctx context.Context, email string) (*models.User, error) {
+func (r *PostgresRepository) GetUserByEmail(ctx context.Context, email string) (*entities.User, error) {
 	const q = `SELECT id, email, password_hash, created_at FROM users WHERE email = $1`
 
-	var user models.User
+	var user entities.User
 	if err := r.pool.QueryRow(ctx, q, email).
 		Scan(&user.ID, &user.Email, &user.PasswordHash, &user.CreatedAt); err != nil {
 		if err == pgx.ErrNoRows {
@@ -54,10 +55,10 @@ func (r *PostgresRepository) GetUserByEmail(ctx context.Context, email string) (
 	return &user, nil
 }
 
-func (r *PostgresRepository) GetUserById(ctx context.Context, userID uuid.UUID) (*models.User, error) {
+func (r *PostgresRepository) GetUserById(ctx context.Context, userID uuid.UUID) (*entities.User, error) {
 	const q = `SELECT id, email, password_hash, created_at FROM users WHERE id = $1`
 
-	var user models.User
+	var user entities.User
 	if err := r.pool.QueryRow(ctx, q, userID).
 		Scan(&user.ID, &user.Email, &user.PasswordHash, &user.CreatedAt); err != nil {
 		if err == pgx.ErrNoRows {
@@ -71,7 +72,7 @@ func (r *PostgresRepository) GetUserById(ctx context.Context, userID uuid.UUID) 
 	return &user, nil
 }
 
-func (r *PostgresRepository) GetAllUsers(ctx context.Context) ([]models.User, error) {
+func (r *PostgresRepository) GetAllUsers(ctx context.Context) ([]entities.User, error) {
 	const q = `SELECT id, email, password_hash, created_at FROM users`
 
 	rows, err := r.pool.Query(ctx, q)
@@ -81,9 +82,9 @@ func (r *PostgresRepository) GetAllUsers(ctx context.Context) ([]models.User, er
 	}
 	defer rows.Close()
 
-	users := make([]models.User, 0)
+	users := make([]entities.User, 0)
 	for rows.Next() {
-		var user models.User
+		var user entities.User
 		if err := rows.Scan(&user.ID, &user.Email, &user.PasswordHash, &user.CreatedAt); err != nil {
 			r.logger.Error("postgres: scan user failed", slog.Any("error", err))
 			return nil, err
@@ -99,7 +100,7 @@ func (r *PostgresRepository) GetAllUsers(ctx context.Context) ([]models.User, er
 	return users, nil
 }
 
-func (r *PostgresRepository) UpdateUser(ctx context.Context, user *models.User) (*models.User, error) {
+func (r *PostgresRepository) UpdateUser(ctx context.Context, user *entities.User) (*entities.User, error) {
 	const q = `UPDATE users SET email = $1, password_hash = $2 WHERE id = $3 RETURNING id, email, password_hash, created_at`
 
 	if err := r.pool.QueryRow(ctx, q, user.Email, user.PasswordHash, user.ID).

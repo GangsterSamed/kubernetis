@@ -9,6 +9,7 @@ import (
 	"github.com/google/uuid"
 	auth2 "github.com/polzovatel/todo-learning/internal/auth"
 	"github.com/polzovatel/todo-learning/internal/domain"
+	"github.com/polzovatel/todo-learning/internal/domain/validators"
 	"github.com/polzovatel/todo-learning/internal/models"
 	"github.com/polzovatel/todo-learning/internal/service"
 	"github.com/polzovatel/todo-learning/logger"
@@ -46,6 +47,12 @@ func (c *TodoController) CreateTodo(ctx *gin.Context) {
 
 	var reqTodo models.CreateTodoRequest
 	if err := ctx.ShouldBind(&reqTodo); err != nil {
+		appLogger.Warn("invalid todo payload", slog.Any("error", err))
+		ctx.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	if err := validators.ValidateTodo(reqTodo.Title); err != nil {
 		appLogger.Warn("invalid todo payload", slog.Any("error", err))
 		ctx.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
@@ -180,6 +187,14 @@ func (c *TodoController) UpdateTodo(ctx *gin.Context) {
 		appLogger.Warn("invalid update todo payload", slog.Any("error", err))
 		ctx.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
+	}
+
+	if req.Title != nil {
+		if err := validators.ValidateTodo(*req.Title); err != nil {
+			appLogger.Warn("validation failed", slog.String("title", *req.Title), slog.Any("error", err))
+			ctx.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
 	}
 
 	todo, err := c.service.UpdateTodo(ctx, todoID, userID, req)

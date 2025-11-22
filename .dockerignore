@@ -1,0 +1,12 @@
+bin/
+tmp/
+postgres-data/
+redis-data/
+.git/
+.gitignore
+README.md
+*.md
+.env
+coverage.out
+.vscode/
+.idea/

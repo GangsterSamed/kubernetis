@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -30,6 +31,10 @@ type Config struct {
 	DBUser string
 	DBPass string
 	DBName string
+
+	RedisAddr string
+	RedisPass string
+	RedisDB   int
 }
 
 func LoadCFG() (*Config, error) {
@@ -53,6 +58,10 @@ func LoadCFG() (*Config, error) {
 		DBUser: getEnv("DB_USER", "postgres"),
 		DBPass: getEnv("DB_PASS", "secret"),
 		DBName: getEnv("DB_NAME", "postgres"),
+
+		RedisAddr: getEnv("REDIS_ADDR", "localhost:6379"),
+		RedisPass: getEnv("REDIS_PASS", "secret"),
+		RedisDB:   getEnvInt("REDIS_DB", 0),
 	}
 	var err error
 	if cfg.AccessTTL, err = parseDuration("ACCESS_TTL", "15m"); err != nil {
@@ -84,6 +93,20 @@ func LoadCFG() (*Config, error) {
 func getEnv(key, fallback string) string {
 	if value, ok := os.LookupEnv(key); ok {
 		return value
+	}
+	return fallback
+}
+
+func getEnvInt(key string, fallback int) int {
+	if value, ok := os.LookupEnv(key); ok {
+		if value == "" {
+			return fallback
+		}
+		result, err := strconv.Atoi(value)
+		if err != nil {
+			return fallback
+		}
+		return result
 	}
 	return fallback
 }
