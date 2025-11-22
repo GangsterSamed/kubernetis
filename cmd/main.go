@@ -2,27 +2,21 @@ package main
 
 import (
 	"context"
+	"log/slog"
+	"net/http"
 	"os"
 
-	"log/slog"
-
-	"github.com/gin-gonic/gin"
-	"github.com/polzovatel/todo-learning/cmd/middleware"
+	app2 "github.com/polzovatel/todo-learning/cmd/app"
 	"github.com/polzovatel/todo-learning/config"
 	"github.com/polzovatel/todo-learning/internal/auth"
-	"github.com/polzovatel/todo-learning/internal/controller"
 	"github.com/polzovatel/todo-learning/internal/database"
 	"github.com/polzovatel/todo-learning/internal/repository"
 	"github.com/polzovatel/todo-learning/internal/repository/in_memory"
 	"github.com/polzovatel/todo-learning/internal/repository/postgres"
-	"github.com/polzovatel/todo-learning/internal/service"
 	"github.com/polzovatel/todo-learning/logger"
 )
 
 func main() {
-	r := gin.New()
-	r.Use(gin.Recovery())
-
 	ctx := context.Background()
 
 	cfg, err := config.LoadCFG()
@@ -40,39 +34,28 @@ func main() {
 		os.Exit(1)
 	}
 
+	redisClient := database.NewRedisClient(cfg, appLogger)
+	if redisClient == nil {
+		appLogger.Warn("failed to create redis client, continuing without cache")
+	}
+	if redisClient != nil {
+		defer redisClient.Close()
+	}
+
 	userRepo, todoRepo, cleanup, err := initRepository(ctx, cfg, appLogger)
 	if err != nil {
 		appLogger.Error("failed to init repository", slog.Any("error", err))
 		os.Exit(1)
 	}
-	defer cleanup()
 
-	userService := service.NewService(userRepo, appLogger)
-	todoService := service.NewTodoService(userRepo, todoRepo, appLogger)
-	contr := controller.NewUserController(userService, singer, appLogger)
-	todoContr := controller.NewTodoController(todoService, singer, appLogger)
+	app := app2.NewApp(appLogger, userRepo, todoRepo, redisClient, singer)
 
-	r.Use(middleware.RequestLoggerMiddleware(appLogger))
-	api := r.Group("/api/v1")
-	{
-		api.POST("/register", contr.RegisterUser)
-		api.POST("/login", contr.LoginUser)
+	server := &http.Server{
+		Addr:    cfg.HTTPAddr,
+		Handler: app.Router,
 	}
 
-	protected := api.Group("")
-	protected.Use(middleware.AuthMiddleware(singer, appLogger))
-	{
-		protected.GET("/me", contr.GetMe)
-		protected.POST("/logout", contr.LogoutUser)
-		protected.POST("/todos", todoContr.CreateTodo)
-		protected.GET("/todos", todoContr.GetTodos)
-		protected.GET("/todos/:id", todoContr.GetTodoByID)
-		protected.PUT("/todos/:id", todoContr.UpdateTodo)
-		protected.DELETE("/todos/:id", todoContr.DeleteTodo)
-	}
-
-	appLogger.Info("HTTP server starting", slog.String("addr", cfg.HTTPAddr))
-	if err := r.Run(cfg.HTTPAddr); err != nil {
+	if err := app.Run(server, cleanup); err != nil {
 		appLogger.Error("HTTP server stopped with error", slog.Any("error", err))
 		os.Exit(1)
 	}

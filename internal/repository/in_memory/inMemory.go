@@ -7,27 +7,27 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/polzovatel/todo-learning/internal/domain"
-	"github.com/polzovatel/todo-learning/internal/models"
+	"github.com/polzovatel/todo-learning/internal/domain/entities"
 )
 
 type InMemoryRepository struct {
-	users     map[uuid.UUID]*models.User
+	users     map[uuid.UUID]*entities.User
 	emailToID map[string]uuid.UUID
-	todos     map[uuid.UUID]*models.Todo
+	todos     map[uuid.UUID]*entities.Todo
 	logger    *slog.Logger
 }
 
 func NewInMemoryRepository(logger *slog.Logger) *InMemoryRepository {
 	return &InMemoryRepository{
-		users:     make(map[uuid.UUID]*models.User),
+		users:     make(map[uuid.UUID]*entities.User),
 		emailToID: make(map[string]uuid.UUID),
-		todos:     make(map[uuid.UUID]*models.Todo),
+		todos:     make(map[uuid.UUID]*entities.Todo),
 		logger:    logger,
 	}
 }
 
-func (r *InMemoryRepository) CreateUser(ctx context.Context, email, passwordHash string) (models.User, error) {
-	user := &models.User{
+func (r *InMemoryRepository) CreateUser(ctx context.Context, email, passwordHash string) (entities.User, error) {
+	user := &entities.User{
 		ID:           uuid.New(),
 		Email:        email,
 		PasswordHash: passwordHash,
@@ -43,7 +43,7 @@ func (r *InMemoryRepository) CreateUser(ctx context.Context, email, passwordHash
 	return *user, nil
 }
 
-func (r *InMemoryRepository) GetUserByEmail(ctx context.Context, email string) (*models.User, error) {
+func (r *InMemoryRepository) GetUserByEmail(ctx context.Context, email string) (*entities.User, error) {
 	userID, ok := r.emailToID[email]
 	if !ok {
 		if r.logger != nil {
@@ -55,7 +55,7 @@ func (r *InMemoryRepository) GetUserByEmail(ctx context.Context, email string) (
 	return r.GetUserById(ctx, userID)
 }
 
-func (r *InMemoryRepository) GetUserById(ctx context.Context, userID uuid.UUID) (*models.User, error) {
+func (r *InMemoryRepository) GetUserById(ctx context.Context, userID uuid.UUID) (*entities.User, error) {
 	user, ok := r.users[userID]
 	if !ok {
 		if r.logger != nil {
@@ -67,8 +67,8 @@ func (r *InMemoryRepository) GetUserById(ctx context.Context, userID uuid.UUID) 
 	return user, nil
 }
 
-func (r *InMemoryRepository) GetAllUsers(ctx context.Context) ([]models.User, error) {
-	users := make([]models.User, 0, len(r.users))
+func (r *InMemoryRepository) GetAllUsers(ctx context.Context) ([]entities.User, error) {
+	users := make([]entities.User, 0, len(r.users))
 	for _, user := range r.users {
 		users = append(users, *user)
 	}
@@ -76,7 +76,7 @@ func (r *InMemoryRepository) GetAllUsers(ctx context.Context) ([]models.User, er
 	return users, nil
 }
 
-func (r *InMemoryRepository) UpdateUser(ctx context.Context, user *models.User) (*models.User, error) {
+func (r *InMemoryRepository) UpdateUser(ctx context.Context, user *entities.User) (*entities.User, error) {
 	oldUser, err := r.GetUserById(ctx, user.ID)
 	if err != nil {
 		return nil, domain.ErrUserNotFound

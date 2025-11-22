@@ -7,11 +7,11 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/polzovatel/todo-learning/internal/domain"
-	"github.com/polzovatel/todo-learning/internal/models"
+	"github.com/polzovatel/todo-learning/internal/domain/entities"
 )
 
-func (r *InMemoryRepository) CreateTodo(ctx context.Context, userID uuid.UUID, title, description string) (models.Todo, error) {
-	todo := &models.Todo{
+func (r *InMemoryRepository) CreateTodo(ctx context.Context, userID uuid.UUID, title, description string) (entities.Todo, error) {
+	todo := &entities.Todo{
 		ID:          uuid.New(),
 		UserID:      userID,
 		Title:       title,
@@ -28,7 +28,7 @@ func (r *InMemoryRepository) CreateTodo(ctx context.Context, userID uuid.UUID, t
 	return *todo, nil
 }
 
-func (r *InMemoryRepository) GetTodoByID(ctx context.Context, todoID uuid.UUID) (*models.Todo, error) {
+func (r *InMemoryRepository) GetTodoByID(ctx context.Context, todoID uuid.UUID) (*entities.Todo, error) {
 	todo, ok := r.todos[todoID]
 	if !ok {
 		if r.logger != nil {
@@ -40,8 +40,8 @@ func (r *InMemoryRepository) GetTodoByID(ctx context.Context, todoID uuid.UUID) 
 	return todo, nil
 }
 
-func (r *InMemoryRepository) GetTodoByUserID(ctx context.Context, userID uuid.UUID) ([]models.Todo, error) {
-	todos := make([]models.Todo, 0)
+func (r *InMemoryRepository) GetTodoByUserID(ctx context.Context, userID uuid.UUID) ([]entities.Todo, error) {
+	todos := make([]entities.Todo, 0)
 	for _, todo := range r.todos {
 		if todo.UserID == userID {
 			todos = append(todos, *todo)
@@ -51,7 +51,7 @@ func (r *InMemoryRepository) GetTodoByUserID(ctx context.Context, userID uuid.UU
 	return todos, nil
 }
 
-func (r *InMemoryRepository) UpdateTodo(ctx context.Context, todo *models.Todo) (*models.Todo, error) {
+func (r *InMemoryRepository) UpdateTodo(ctx context.Context, todo *entities.Todo) (*entities.Todo, error) {
 	if _, ok := r.todos[todo.ID]; !ok {
 		if r.logger != nil {
 			r.logger.Warn("memory: todo not found for update", slog.String("todo_id", todo.ID.String()))

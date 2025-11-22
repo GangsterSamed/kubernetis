@@ -5,13 +5,13 @@ import (
 
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
+	"github.com/polzovatel/todo-learning/internal/domain/entities"
 )
 
-type User struct {
-	ID           uuid.UUID `json:"id"`
-	Email        string    `json:"email"`
-	PasswordHash string    `json:"-"`
-	CreatedAt    time.Time `json:"created_at"`
+type UserResponse struct {
+	ID        uuid.UUID `json:"id"`
+	Email     string    `json:"email"`
+	CreatedAt time.Time `json:"created_at"`
 }
 
 type RegisterRequest struct {
@@ -25,15 +25,15 @@ type LoginRequest struct {
 }
 
 type RegisterResponse struct {
-	AccessToken  string `json:"access_token"`
-	RefreshToken string `json:"refresh_token"`
-	User         *User  `json:"user"`
+	AccessToken  string         `json:"access_token"`
+	RefreshToken string         `json:"refresh_token"`
+	User         *entities.User `json:"user"`
 }
 
 type LoginResponse struct {
-	AccessToken  string `json:"access_token"`
-	RefreshToken string `json:"refresh_token"`
-	User         *User  `json:"user"`
+	AccessToken  string         `json:"access_token"`
+	RefreshToken string         `json:"refresh_token"`
+	User         *entities.User `json:"user"`
 }
 
 type Claims struct {
@@ -42,16 +42,6 @@ type Claims struct {
 	Role   string `json:"role"`
 	Type   string `json:"type"`
 	jwt.RegisteredClaims
-}
-
-type Todo struct {
-	ID          uuid.UUID `json:"id"`
-	UserID      uuid.UUID `json:"user_id"`
-	Title       string    `json:"title"`
-	Description string    `json:"description"`
-	Completed   bool      `json:"completed"`
-	CreatedAt   time.Time `json:"created_at"`
-	UpdatedAt   time.Time `json:"updated_at"`
 }
 
 type CreateTodoRequest struct {

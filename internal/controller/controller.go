@@ -8,7 +8,9 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	auth2 "github.com/polzovatel/todo-learning/internal/auth"
+	"github.com/polzovatel/todo-learning/internal/controller/mappers"
 	"github.com/polzovatel/todo-learning/internal/domain"
+	"github.com/polzovatel/todo-learning/internal/domain/validators"
 	"github.com/polzovatel/todo-learning/internal/models"
 	"github.com/polzovatel/todo-learning/internal/service"
 	"github.com/polzovatel/todo-learning/logger"
@@ -39,6 +41,12 @@ func (c *UserController) RegisterUser(ctx *gin.Context) {
 		return
 	}
 
+	if err := validators.ValidateUser(req.Email, req.Password); err != nil {
+		appLogger.Warn("validation failed", slog.String("email", req.Email), slog.Any("error", err))
+		ctx.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
 	// Hash password
 	hash, err := auth2.HashPassword(req.Password)
 	if err != nil {
@@ -60,7 +68,7 @@ func (c *UserController) RegisterUser(ctx *gin.Context) {
 	}
 
 	appLogger.Info("user created", slog.String("email", user.Email))
-	ctx.JSON(http.StatusCreated, gin.H{"user": user})
+	ctx.JSON(http.StatusCreated, gin.H{"user": mappers.UserToDTO(user)})
 }
 
 func (c *UserController) LoginUser(ctx *gin.Context) {
